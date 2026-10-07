@@ -90,7 +90,7 @@
     const API_BRIDGE_ORIGIN='https://script.google.com';
     const API_METHODS=new Set(['loginUser','logoutUser','getDashboardData','createContent','updateContentStatus','uploadContentImage','getImageData']);
     const apiBridge=$('apiBridge');const pendingApiCalls=new Map();let apiBridgeReady=false,apiBridgeOrigin=API_BRIDGE_ORIGIN;
-    function bridgeWindow(){const outer=apiBridge.contentWindow;try{return outer.frames.length?outer.frames[0]:outer}catch(e){return outer}}
+    function bridgeWindow(){let frame=apiBridge.contentWindow;try{while(frame.frames.length)frame=frame.frames[0]}catch(e){}return frame}
     function isAppsScriptOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'||origin.endsWith('.script.googleusercontent.com')}
     window.addEventListener('message',event=>{
       if(event.source!==bridgeWindow()||!isAppsScriptOrigin(event.origin))return;
