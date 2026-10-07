@@ -90,13 +90,14 @@
     const API_BRIDGE_ORIGIN='https://script.google.com';
     const API_METHODS=new Set(['loginUser','logoutUser','getDashboardData','createContent','updateContentStatus','uploadContentImage','getImageData']);
     const apiBridge=$('apiBridge');const pendingApiCalls=new Map();let apiBridgeReady=false,apiBridgeOrigin=API_BRIDGE_ORIGIN;
-    function isAppsScriptOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'}
+    function bridgeWindow(){const outer=apiBridge.contentWindow;try{return outer.frames.length?outer.frames[0]:outer}catch(e){return outer}}
+    function isAppsScriptOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'||origin.endsWith('.script.googleusercontent.com')}
     window.addEventListener('message',event=>{
-      if(event.source!==apiBridge.contentWindow||!isAppsScriptOrigin(event.origin))return;
+      if(event.source!==bridgeWindow()||!isAppsScriptOrigin(event.origin))return;
       const message=event.data||{};
       if(message.type==='saans-bridge-ready'){
         apiBridgeReady=true;apiBridgeOrigin=event.origin;
-        pendingApiCalls.forEach(call=>{if(!call.sent){call.sent=true;apiBridge.contentWindow.postMessage(call.message,apiBridgeOrigin)}});
+        pendingApiCalls.forEach(call=>{if(!call.sent){call.sent=true;bridgeWindow().postMessage(call.message,apiBridgeOrigin)}});
         return;
       }
       if(message.type!=='saans-api-response')return;
@@ -104,7 +105,7 @@
       clearTimeout(call.timeout);pendingApiCalls.delete(message.id);
       if(message.ok)call.resolve(message.result);else call.reject(new Error(message.message||'Permintaan ke server gagal.'));
     });
-    apiBridge.addEventListener('load',()=>apiBridge.contentWindow.postMessage({type:'saans-bridge-ping'},'*'));
+    apiBridge.addEventListener('load',()=>bridgeWindow().postMessage({type:'saans-bridge-ping'},'*'));
     function callServer(method,...args){
       if(!API_METHODS.has(method))return Promise.reject(new Error('Operasi server tidak diizinkan.'));
       return new Promise((resolve,reject)=>{
@@ -112,7 +113,7 @@
         const message={type:'saans-api-request',id,method,args};
         const timeout=setTimeout(()=>{pendingApiCalls.delete(id);reject(new Error('Server tidak merespons. Muat ulang halaman lalu coba lagi.'))},45000);
         const call={message,resolve,reject,timeout,sent:false};pendingApiCalls.set(id,call);
-        if(apiBridgeReady){call.sent=true;apiBridge.contentWindow.postMessage(message,apiBridgeOrigin)}
+        if(apiBridgeReady){call.sent=true;bridgeWindow().postMessage(message,apiBridgeOrigin)}
       });
     }
     function showToast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3200)}
