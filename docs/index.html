@@ -89,8 +89,12 @@
     const $=id=>document.getElementById(id);
     const GAS_URL='https://script.google.com/macros/s/AKfycbweiusJYudyc9aiNX6WtR7SDQavHcdR7c48cLAIQkkmCeJIrzWvLqECY1-pn_ImdImJ/exec';
     function isNetworkError(msg){return msg==='Failed to fetch'||msg==='NetworkError when attempting to fetch resource.'||msg==='Load failed'}
-    function callServer(method,...args){var body=JSON.stringify({method:method,args:args});return gasPost_(body,2).then(function(text){var data;try{data=JSON.parse(text)}catch(e){throw new Error('Respons server tidak valid. Muat ulang halaman lalu coba lagi.')}if(!data.ok)throw new Error(data.message||'Permintaan ke server gagal.');return data.result})}
-    function gasPost_(body,retries){return fetch(GAS_URL,{method:'POST',body:body}).then(function(r){return r.text()}).catch(function(err){if(retries>0&&isNetworkError(err.message)){return new Promise(function(ok){setTimeout(ok,1500)}).then(function(){return gasPost_(body,retries-1)})}if(isNetworkError(err.message))throw new Error('Tidak dapat menghubungi server. Periksa koneksi internet dan muat ulang halaman.');throw err})}
+    function callServer(method,...args){
+      var payload=JSON.stringify({method:method,args:args});var encoded=btoa(unescape(encodeURIComponent(payload)));var getUrl=GAS_URL+'?action=api&data='+encodeURIComponent(encoded);
+      var useGet=getUrl.length<6000;var url=useGet?getUrl:GAS_URL;var opts=useGet?{}:{method:'POST',body:payload};
+      return gasFetch_(url,opts,2);
+    }
+    function gasFetch_(url,opts,retries){return fetch(url,opts).then(function(r){return r.text()}).then(function(text){var data;try{data=JSON.parse(text)}catch(e){throw new Error('Respons server tidak valid. Muat ulang halaman lalu coba lagi.')}if(!data.ok)throw new Error(data.message||'Permintaan ke server gagal.');return data.result}).catch(function(err){if(retries>0&&isNetworkError(err.message)){return new Promise(function(ok){setTimeout(ok,1500)}).then(function(){return gasFetch_(url,opts,retries-1)})}if(isNetworkError(err.message))throw new Error('Tidak dapat menghubungi server. Periksa koneksi internet dan muat ulang halaman.');throw err})}
     function showToast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3200)}
     function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
     function isPosted(status){const s=(status||'').toLowerCase();return s.includes('sudah posting')||s.includes('sudah diposting')||s.includes('tayang')}
