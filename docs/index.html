@@ -181,16 +181,14 @@
     function callServer(method,...args){
       var payload=JSON.stringify({method:method,args:args});
       var encoded=btoa(unescape(encodeURIComponent(payload)));
-      var getUrl=GAS_URL+'?action=api&data='+encodeURIComponent(encoded);
-      var useGet=getUrl.length<6000;
-      return gasFetch_(useGet?getUrl:GAS_URL, useGet?{}:{method:'POST',body:payload}, 2);
-    }
-    function gasFetch_(url,opts,retries){
-      return fetch(url,opts).then(function(r){return r.text()}).then(function(t){
-        var d;try{d=JSON.parse(t)}catch(e){throw new Error('Respons server tidak valid.')}
+      var url=GAS_URL+'?action=api&data='+encodeURIComponent(encoded);
+      console.log('[API]',method,'→ GET',url.length,'chars');
+      return fetch(url).then(function(r){console.log('[API]',method,'status',r.status);return r.text()}).then(function(t){
+        console.log('[API]',method,'raw response:',t.substring(0,200));
+        var d;try{d=JSON.parse(t)}catch(e){throw new Error('Respons server tidak valid. Coba muat ulang halaman.')}
         if(!d.ok)throw new Error(d.message||'Permintaan gagal.');return d.result;
       }).catch(function(err){
-        if(retries>0&&isNetErr(err.message))return new Promise(function(ok){setTimeout(ok,1500)}).then(function(){return gasFetch_(url,opts,retries-1)});
+        console.error('[API]',method,'error:',err);
         if(isNetErr(err.message))throw new Error('Tidak dapat menghubungi server. Periksa koneksi internet.');throw err;
       });
     }
