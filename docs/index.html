@@ -37,7 +37,7 @@
     </div></div>
   </section>
 
-  <section id="appView" class="hidden min-h-screen lg:grid lg:grid-cols-[245px_1fr]">
+  <section id="appView" style="display:none" class="min-h-screen lg:grid lg:grid-cols-[245px_1fr]">
     <aside class="hidden lg:flex flex-col border-r border-line bg-white px-5 py-6">
       <div class="flex items-center gap-3 px-2"><div class="w-10 h-10 rounded-xl bg-[#18372d] text-[#e2bd72] grid place-items-center font-extrabold">SA</div><div><p class="text-sm font-extrabold tracking-tight">Content Planner</p><p class="text-[11px] text-slate-400">Sekolah Anak Saleh</p></div></div>
       <div class="mt-10"><p class="px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">WORKSPACE</p><nav class="mt-3 space-y-1"><button class="sidebar-link active flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold" data-view="dashboard"><span class="nav-icon text-slate-400">◫</span> Ringkasan</button><button class="sidebar-link flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-500 hover:bg-sand" data-view="calendar"><span class="nav-icon text-slate-400">▦</span> Kalender konten</button></nav></div>
@@ -98,8 +98,8 @@
     function isoToDate(date){if(!date)return null;const d=new Date(date+'T00:00:00');return isNaN(d)?null:d}
     function prettyDate(item){const date=isoToDate(item.date);return date?new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short'}).format(date):escapeHtml(item.dateLabel||'—')}
     function formatToday(){const now=new Date();$('todayLabel').textContent=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now).toUpperCase();}
-    function loginView(){ $('appView').classList.add('hidden');$('loginView').classList.remove('hidden');$('loginError').classList.add('hidden'); }
-    function appView(userId){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('profileName').textContent=userId;$('welcomeName').textContent=userId;$('avatarInitial').textContent=String(userId||'U').slice(0,1).toUpperCase();formatToday();loadData();}
+    function loginView(){ $('appView').style.display='none';$('loginView').style.display='';$('loginError').classList.add('hidden'); }
+    function appView(userId){$('loginView').style.display='none';$('appView').style.display='';$('profileName').textContent=userId;$('welcomeName').textContent=userId;$('avatarInitial').textContent=String(userId||'U').slice(0,1).toUpperCase();formatToday();loadData();}
     async function doLogin(event){event.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='Memverifikasi…';$('loginError').classList.add('hidden');try{session=await callServer('loginUser',$('userId').value,$('password').value);sessionStorage.setItem(STORAGE_KEY,JSON.stringify(session));appView(session.userId)}catch(err){$('loginError').textContent=err.message;$('loginError').classList.remove('hidden')}finally{button.disabled=false;button.innerHTML='Masuk ke dashboard <span class="ml-1">↗</span>'}}
     async function logout(){try{await callServer('logoutUser',session&&session.token)}catch(e){}session=null;sessionStorage.removeItem(STORAGE_KEY);allItems=[];loginView()}
     async function loadData(){ $('loadingState').classList.remove('hidden');$('dashboardContent').classList.add('hidden');try{const data=await callServer('getDashboardData',session.token);allItems=data.items||[];renderDashboard(allItems,data.imageColumnAvailable);$('loadingState').classList.add('hidden');$('dashboardContent').classList.remove('hidden')}catch(err){if(err.message.toLowerCase().includes('sesi')){logout();return}$('loadingState').textContent=err.message;showToast('Tidak dapat memuat data sheet.')}}
