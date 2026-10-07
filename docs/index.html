@@ -15,7 +15,7 @@
   </style>
 </head>
 <body class="bg-sand text-ink min-h-screen">
-  <iframe id="apiBridge" title="Koneksi data" aria-hidden="true" tabindex="-1" class="hidden" src="https://script.google.com/macros/s/AKfycbweiusJYudyc9aiNX6WtR7SDQavHcdR7c48cLAIQkkmCeJIrzWvLqECY1-pn_ImdImJ/exec?bridge=1"></iframe>
+
   <section id="loginView" class="min-h-screen grid lg:grid-cols-[1.02fr_.98fr]">
     <div class="hidden lg:flex relative overflow-hidden bg-[#18372d] text-white p-14 flex-col justify-between">
       <div class="absolute -right-28 -top-20 w-[520px] h-[520px] rounded-full border border-white/10"></div><div class="absolute -right-10 top-0 w-[360px] h-[360px] rounded-full border border-white/10"></div><div class="absolute right-24 top-28 w-44 h-44 rounded-full bg-[#d4a850]/20 blur-2xl"></div>
@@ -87,35 +87,9 @@
   <script>
     const STORAGE_KEY='saans-content-session';const CONTENT_STATUSES=['Proses Writing','Proses Design','Proses Revisi','Perlu Persetujuan','Siap Posting','Sudah Posting'];let session=null,allItems=[],activeUploadRow=null,toastTimer;
     const $=id=>document.getElementById(id);
-    const API_BRIDGE_ORIGIN='https://script.google.com';
-    const API_METHODS=new Set(['loginUser','logoutUser','getDashboardData','createContent','updateContentStatus','uploadContentImage','getImageData']);
-    const apiBridge=$('apiBridge');const pendingApiCalls=new Map();let apiBridgeReady=false,apiBridgeOrigin=API_BRIDGE_ORIGIN,apiBridgeWindow=null;
-    function bridgeWindow(){return apiBridgeWindow||apiBridge.contentWindow}
-    function isAppsScriptOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'||origin.endsWith('.script.googleusercontent.com')}
-    window.addEventListener('message',event=>{
-      if(!isAppsScriptOrigin(event.origin))return;
-      const message=event.data||{};
-      if(message.type==='saans-bridge-ready'){
-        if(!event.source||typeof event.source.postMessage!=='function')return;
-        apiBridgeWindow=event.source;apiBridgeReady=true;apiBridgeOrigin=event.origin;
-        pendingApiCalls.forEach(call=>{if(!call.sent){call.sent=true;apiBridgeWindow.postMessage(call.message,apiBridgeOrigin)}});
-        return;
-      }
-      if(event.source!==apiBridgeWindow||message.type!=='saans-api-response')return;
-      const call=pendingApiCalls.get(message.id);if(!call)return;
-      clearTimeout(call.timeout);pendingApiCalls.delete(message.id);
-      if(message.ok)call.resolve(message.result);else call.reject(new Error(message.message||'Permintaan ke server gagal.'));
-    });
-    apiBridge.addEventListener('load',()=>bridgeWindow().postMessage({type:'saans-bridge-ping'},'*'));
+    const GAS_URL='https://script.google.com/macros/s/AKfycbweiusJYudyc9aiNX6WtR7SDQavHcdR7c48cLAIQkkmCeJIrzWvLqECY1-pn_ImdImJ/exec';
     function callServer(method,...args){
-      if(!API_METHODS.has(method))return Promise.reject(new Error('Operasi server tidak diizinkan.'));
-      return new Promise((resolve,reject)=>{
-        const id=window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
-        const message={type:'saans-api-request',id,method,args};
-        const timeout=setTimeout(()=>{pendingApiCalls.delete(id);reject(new Error('Server tidak merespons. Muat ulang halaman lalu coba lagi.'))},45000);
-        const call={message,resolve,reject,timeout,sent:false};pendingApiCalls.set(id,call);
-        if(apiBridgeReady&&apiBridgeWindow){call.sent=true;apiBridgeWindow.postMessage(message,apiBridgeOrigin)}
-      });
+      return fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({method,args}),redirect:'follow'}).then(r=>{if(!r.ok)throw new Error('Server tidak merespons (HTTP '+r.status+').');return r.json()}).then(data=>{if(!data.ok)throw new Error(data.message||'Permintaan ke server gagal.');return data.result}).catch(err=>{if(err.message&&err.message.includes('Failed to fetch'))throw new Error('Tidak dapat menghubungi server. Periksa koneksi internet.');throw err});
     }
     function showToast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3200)}
     function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
